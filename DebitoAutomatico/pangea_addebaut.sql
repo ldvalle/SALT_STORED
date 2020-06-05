@@ -1,7 +1,7 @@
 DROP PROCEDURE pangea_addebaut;
 
 CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuenta CHAR(2), CodBanco CHAR(4), CBU CHAR(22), ClaseTarjeta CHAR(4), NroTarjeta CHAR(20))
-    RETURNING SMALLINT AS codigo, CHAR(100) AS descripcion;
+    RETURNING INTEGER AS codigo, CHAR(100) AS descripcion;
 
 --************************************************************
 --
@@ -40,31 +40,32 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
     DEFINE codOficina			  char(4);
     DEFINE nrows					  int;
     
+    {
     ON EXCEPTION SET sql_err, isam_err, error_info
         RETURN 2, "Se produjo un error: " || error_info;
         --RAISE EXCEPTION sql_err, isam_err, error_info;
     END EXCEPTION;
-    {
+    
     ON EXCEPTION IN (-746) SET sql_err, isam_err, error_info
         RAISE EXCEPTION sql_err, isam_err, error_info;
     END EXCEPTION;
     }
     
     IF Solicitud <> 'E' AND Solicitud <> 'R' THEN
-        RETURN 1, "Tipo Solicitud incorrecta";
+        RETURN 1, 'Tipo Solicitud incorrecta';
     END IF
     
     IF TipoCuenta <> '01' AND TipoCuenta <> '02' THEN
-        RETURN 1, "Tipo Cuenta incorrecta";
+        RETURN 1, 'Tipo Cuenta incorrecta';
     END IF
     
     IF (TipoCuenta = '01' AND (ClaseTarjeta IS NULL OR NroTarjeta IS NULL)) OR
        (TipoCuenta = '02' AND (CodBanco IS NULL     OR CBU IS NULL) )THEN
-        RETURN 1, "Paremetros incorrectos";
+        RETURN 1, 'Paremetros incorrectos';
     END IF
 
     IF TipoCuenta = '02' AND LENGTH(CBU) <> 22 THEN 
-        RETURN 1, "Cant.Dígitos de CBU incorrecto";
+        RETURN 1, 'Cant.Dígitos de CBU incorrecto';
     END IF
 
 
@@ -74,11 +75,11 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
            WHERE numero_cliente = NroCliente );
 
     IF sEstadoCliente <> '0' THEN
-        RETURN 1, "Cliente Inactivo";
+        RETURN 1, 'Cliente Inactivo';
     END IF
 
     IF sEstadoFacturacion <> '0' THEN
-        RETURN 1, "Cliente en Ciclo de Facturación";
+        RETURN 1, 'Cliente en Ciclo de Facturación';
     END IF
 
 	IF TRIM(TipoCuenta)= '01' THEN
@@ -111,12 +112,12 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
              AND o.tipo              = 'D' );
 
     IF ivalCodigo IS NULL THEN
-        RETURN 1, "Codigo Banco / Tarjeta incorrecto";
+        RETURN 1, 'Codigo Banco / Tarjeta incorrecto';
     END IF
 
     IF TipoCuenta = '01' THEN 
         IF ivalCodigo <> LENGTH(NroTarjeta) THEN
-            RETURN 1, "Cant.Dígitos de Número de Cuenta incorrecto (" || ivalCodigo || ")";
+            RETURN 1, 'Cant.Dígitos de Número de Cuenta incorrecto';
         END IF
    END IF
 
@@ -127,23 +128,15 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
         IF iValProced = 1 THEN
             RETURN 1, sErrProced;
         END IF
-        
-        IF iValProced = 2 THEN
-            RAISE EXCEPTION -746, 0, sErrProced;
-        END IF
     ELSE
         EXECUTE PROCEDURE pangea_baja_debito(NroCliente, TipoCuenta, CodBanco, CBU, codOficina, NroTarjeta) INTO iValProced, sErrProced;
     
         IF iValProced = 1 THEN
             RETURN 1, sErrProced;
         END IF
-        
-        IF iValProced = 2 THEN
-            RAISE EXCEPTION -746, 0, sErrProced;
-        END IF
     END IF
 
-    RETURN 0, "OK" ;
+    RETURN 0, 'OK' ;
 END PROCEDURE;
 
 --EXECUTE pangea_addebaut

@@ -50,6 +50,10 @@ CREATE PROCEDURE pangea_baja_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
     DEFINE g_sucur	char(4);
     DEFINE nrows		int;
 
+	 DEFINE stsEntidad		char(4);
+	 DEFINE stsNroCuenta		char(20);
+	 DEFINE stsCbu 			char(22);
+
     ON EXCEPTION SET sql_err, isam_err, error_info
         IF v_en_transaccion = 1 THEN
             ROLLBACK WORK;
@@ -65,14 +69,40 @@ CREATE PROCEDURE pangea_baja_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
 
     LET v_en_transaccion = 0;
 
+-------------------
+	SELECT fp_banco, fp_nrocuenta, fp_cbu
+	INTO stsEntidad, stsNroCuenta, stsCBU
+	FROM forma_pago
+	WHERE numero_cliente = nroCliente
+	AND fecha_activacion <= TODAY
+	AND (fecha_desactivac IS NULL OR fecha_desactivac > TODAY);
 
-    IF ( SELECT COUNT(*)
-            FROM forma_pago
-           WHERE numero_cliente    = NroCliente
-             AND fecha_activacion <= TODAY
-             AND (fecha_desactivac > TODAY OR fecha_desactivac IS NULL) ) = 0 THEN
-        RETURN 1, "Cliente no adherido a Debito Automatico";
-    END IF
+	LET nrows = DBINFO('sqlca.sqlerrd2');
+	IF nrows = 0 THEN
+		RETURN 1, 'El Cliente NO posee forma de pago DEBITO activa.';
+	END IF;
+
+	IF TRIM(TipoCuenta)=='01' THEN
+		IF stsCBU IS NOT NULL THEN
+			RETURN 1, 'Tipo de Entidad Informada NO Coincide.';
+		END IF;
+		IF TRIM(ClaseTarjeta)!= TRIM(stsEntidad) THEN
+			RETURN 1, 'Entidad Informada NO Coincide.';
+		END IF;	
+		IF TRIM(NroTarjeta)!= TRIM(stsNroCuenta) THEN
+			RETURN 1, 'Nro.de tarjeta NO Coincide.';
+		END IF;		
+	ELSE
+		IF stsCBU IS NULL THEN
+			RETURN 1, 'Tipo de Entidad Informada NO Coincide.';
+		END IF;
+		IF TRIM(CodBanco)!= TRIM(stsEntidad) THEN
+			RETURN 1, 'Entidad Informada NO Coincide.';
+		END IF;	
+		IF TRIM(CBU)!= TRIM(stsCBU) THEN
+			RETURN 1, 'CBU NO Coincide.';
+		END IF;	
+	END IF;
 
 	SELECT r.area, s.sucursal INTO g_area, g_sucur FROM rol r, sucar s
 	WHERE r.rol = 'SALESFORCE'
