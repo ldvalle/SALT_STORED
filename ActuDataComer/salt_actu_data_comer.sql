@@ -3,7 +3,7 @@ numeroCliente	LIKE cliente.numero_cliente,
 nroOrden			int,
 Nombre		 	LIKE cliente.nombre,
 tipoDoc			LIKE cliente.tip_doc,
-nroDoc 			LIKE cliente.nro_doc,
+nroDoc 			like cliente.nro_doc,
 Telefono			LIKE cliente.telefono,
 e_mail			char(60))
 RETURNING integer, char(100);
@@ -15,7 +15,7 @@ DEFINE miNroCliente int;
 DEFINE miNroOrden   int;
 DEFINE miNombre		char(50);
 DEFINE miTipoDoc		char(5);
-DEFINE miNroDoc		int;
+DEFINE miNroDoc		float;
 DEFINE miTelefono		char(15);
 DEFINE miEmail			char(60);
 
@@ -33,6 +33,8 @@ DEFINE	actu_nombre LIKE cliente.nombre;
 DEFINE	actu_tipo_doc LIKE cliente.tip_doc;
 DEFINE	actu_nro_doc LIKE cliente.nro_doc;
 DEFINE	actu_telefono LIKE cliente.telefono;
+DEFINE	actu_rut LIKE cliente.rut;
+DEFINE  miCuit varchar(11,0);
 
 	-- registro lockeado
     ON EXCEPTION IN (-107, -144, -113)
@@ -110,7 +112,8 @@ DEFINE	actu_telefono LIKE cliente.telefono;
 	c.nombre,
 	c.tip_doc, 
 	c.nro_doc,
-	c.telefono
+	c.telefono,
+	c.rut
 	INTO
 		stsCliente,
 		stsFacturacion,
@@ -120,7 +123,8 @@ DEFINE	actu_telefono LIKE cliente.telefono;
 		actu_nombre,
 		actu_tipo_doc,
 		actu_nro_doc,
-		actu_telefono
+		actu_telefono,
+		actu_rut
 	FROM cliente c, OUTER( clientes_vip v, tabla t1)
 	WHERE c.numero_cliente = miNroCliente
 	AND v.numero_cliente = c.numero_cliente
@@ -139,43 +143,65 @@ DEFINE	actu_telefono LIKE cliente.telefono;
 	END IF;
 	
 	IF miNombre IS NOT NULL THEN
-		--Actualizar nombre 4
-		EXECUTE PROCEDURE salt_actu_nombre(miNroCliente, miNroOrden, actu_nombre, miNombre, 4)
-			INTO codSts, descSts;
-		
-		IF codSts != 0 THEN
-			RETURN codSts, descSts;
+        IF (TRIM(miNombre) != TRIM(actu_nombre)) OR actu_nombre IS NULL THEN
+            --Actualizar nombre 4
+            EXECUTE PROCEDURE salt_actu_nombre(miNroCliente, miNroOrden, actu_nombre, miNombre, 4)
+                INTO codSts, descSts;
+            
+            IF codSts != 0 THEN
+                RETURN codSts, descSts;
+            END IF;
 		END IF;
 	END IF;
 	
-	IF miTipoDoc IS NOT NULL THEN
-		--Actualizar Tipo Documento 64
-		EXECUTE PROCEDURE salt_actu_tip_doc(miNroCliente, miNroOrden, actu_tipo_doc, miTipoDoc, 64)
-			INTO codSts, descSts;
-		
-		IF codSts != 0 THEN
-			RETURN codSts, descSts;
-		END IF;
-	END IF;
-	
-	IF miNroDoc IS NOT NULL THEN
-		--Actualizar Nro.de documento 60
-		EXECUTE PROCEDURE salt_actu_nro_doc(miNroCliente, miNroOrden, actu_nro_doc, miNroDoc, 60)
-			INTO codSts, descSts;
-		
-		IF codSts != 0 THEN
-			RETURN codSts, descSts;
-		END IF;		
-	END IF;
-	
+	IF TRIM(miTipoDoc)='CUIT' OR TRIM(miTipoDoc)='CUIL' THEN
+        IF miNroDoc IS NOT NULL THEN
+            --Actualizar CUIT
+            LET miCuit = TO_CHAR(ROUND(miNroDoc, 0));
+            
+            EXECUTE PROCEDURE salt_actu_cuit(miNroCliente, miNroOrden, actu_rut, miCuit, 7)
+                INTO codSts, descSts;
+            
+            IF codSts != 0 THEN
+                RETURN codSts, descSts;
+            END IF;        
+        END IF;
+	ELSE
+        IF miTipoDoc IS NOT NULL THEN
+            IF (TRIM(miTipoDoc) != TRIM(actu_tipo_doc)) OR actu_tipo_doc IS NULL THEN
+                --Actualizar Tipo Documento 64
+                EXECUTE PROCEDURE salt_actu_tip_doc(miNroCliente, miNroOrden, actu_tipo_doc, miTipoDoc, 64)
+                    INTO codSts, descSts;
+                
+                IF codSts != 0 THEN
+                    RETURN codSts, descSts;
+                END IF;
+            END IF;
+        END IF;
+        
+        IF miNroDoc IS NOT NULL THEN
+            IF (miNroDoc != actu_nro_doc) OR actu_nro_doc IS NULL THEN
+                --Actualizar Nro.de documento 60
+                EXECUTE PROCEDURE salt_actu_nro_doc(miNroCliente, miNroOrden, actu_nro_doc, miNroDoc, 60)
+                    INTO codSts, descSts;
+                
+                IF codSts != 0 THEN
+                    RETURN codSts, descSts;
+                END IF;
+            END IF;
+        END IF;
+    END IF;
+    
 	IF miTelefono IS NOT NULL THEN
-		-- Actualizar Telefono ppal 89
-		EXECUTE PROCEDURE salt_actu_telefono(miNroCliente, miNroOrden, actu_telefono, miTelefono, 89)
-			INTO codSts, descSts;
-		
-		IF codSts != 0 THEN
-			RETURN codSts, descSts;
-		END IF;		
+        IF (TRIM(miTelefono) != TRIM(actu_telefono)) OR actu_telefono IS NULL THEN
+            -- Actualizar Telefono ppal 89
+            EXECUTE PROCEDURE salt_actu_telefono(miNroCliente, miNroOrden, actu_telefono, miTelefono, 89)
+                INTO codSts, descSts;
+            
+            IF codSts != 0 THEN
+                RETURN codSts, descSts;
+            END IF;
+		END IF;
 	END IF;
 
 	IF miEmail IS NOT NULL THEN

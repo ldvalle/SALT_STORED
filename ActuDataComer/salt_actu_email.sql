@@ -13,6 +13,13 @@ DEFINE descRetorno char(100);
     	return 1, 'ERR - Tabla CLIENTE lockeada';
     END EXCEPTION;
 
+    UPDATE cliente_mail set
+    rol_desactivac = 'SALESFORCE',
+    fecha_desactivac = TODAY
+    WHERE numero_cliente = numeroCliente 
+    AND fecha_desactivac IS NULL;
+    
+    
 	INSERT INTO cliente_mail (
 	numero_cliente, email, ppal_mail, fecha_activacion, rol_activacion
 	)VALUES(numeroCliente, TRIM(email), 'S', TODAY, 'SALESFORCE');
