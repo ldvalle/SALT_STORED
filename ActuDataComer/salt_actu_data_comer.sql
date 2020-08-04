@@ -6,7 +6,7 @@ tipoDoc			LIKE cliente.tip_doc,
 nroDoc 			like cliente.nro_doc,
 Telefono			LIKE cliente.telefono,
 e_mail			char(60))
-RETURNING integer, char(100);
+RETURNING integer as codigo, char(100) as descripcion;
 
 DEFINE codSts	int;
 DEFINE descSts char(50);
