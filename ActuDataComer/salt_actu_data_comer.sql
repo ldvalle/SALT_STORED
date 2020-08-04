@@ -168,6 +168,19 @@ DEFINE  miCuit varchar(11,0);
         END IF;
 	ELSE
         IF miTipoDoc IS NOT NULL THEN
+            IF (SELECT COUNT(*) FROM tabla
+                    WHERE nomtabla = 'TIPDOC'
+                    AND sucursal = '0000'
+                    AND codigo = TRIM(miTipoDoc)
+                    AND fecha_activacion <= TODAY
+                    AND (fecha_desactivac IS NULL OR  fecha_desactivac > TODAY)) <= 0 THEN
+                    
+                    LET codSts=1;
+                    LET descSts='Tipo de documento invalido.';
+
+                return codSts, descSts;
+            END IF;
+        
             IF (TRIM(miTipoDoc) != TRIM(actu_tipo_doc)) OR actu_tipo_doc IS NULL THEN
                 --Actualizar Tipo Documento 64
                 EXECUTE PROCEDURE salt_actu_tip_doc(miNroCliente, miNroOrden, actu_tipo_doc, miTipoDoc, 64)
@@ -213,6 +226,10 @@ DEFINE  miCuit varchar(11,0);
 			RETURN codSts, descSts;
 		END IF;		
 	END IF;
+	
+    IF codSts != 0 THEN
+        RETURN codSts, descSts;
+    END IF;	
 	
 	RETURN 0, 'OK';
 
