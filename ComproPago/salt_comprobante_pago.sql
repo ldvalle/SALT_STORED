@@ -80,15 +80,14 @@ DEFINE iCantVeces			int;
 		LET motivo = '30';
 	END IF;	
 
-	IF TRIM(stsCob) = 'B' THEN
+	IF TRIM(stsCob) = 'B' OR TRIM(stsCob) = '9' THEN
 		LET motivo = '45';
 	END IF;	
 
 	IF saldo_cliente <= 0 THEN
 		LET motivo = '13';
-		
-		
 	END IF;
+	
 	-- datos emision
 	SELECT r.area, s.sucursal
 	INTO
