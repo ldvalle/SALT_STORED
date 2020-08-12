@@ -39,6 +39,7 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
     DEFINE sErrProced           CHAR(100);
     DEFINE codOficina			  char(4);
     DEFINE nrows					  int;
+    DEFINE iCantReg             int;
     
     {
     ON EXCEPTION SET sql_err, isam_err, error_info
@@ -121,8 +122,13 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
         END IF
    END IF
 
-
+   LET iCantReg = (SELECT COUNT(*) FROM forma_pago WHERE numero_cliente = NroCliente AND fecha_activacion = TODAY);
+   
     IF Solicitud = 'E' THEN
+        IF iCantReg > 0 then
+            RETURN 1, 'El Cliente ya tiene un alta el dia de hoy.';
+        END IF;
+    
         EXECUTE PROCEDURE pangea_alta_debito(NroCliente, TipoCuenta, CodBanco, CBU, codOficina, NroTarjeta, sDVCliente, sCorteRest) INTO iValProced, sErrProced;
     
         IF iValProced = 1 THEN
