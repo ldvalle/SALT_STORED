@@ -4,7 +4,7 @@ nroOrden			int,
 Nombre		 	LIKE cliente.nombre,
 tipoDoc			LIKE cliente.tip_doc,
 nroDoc 			like cliente.nro_doc,
-Telefono			LIKE cliente.telefono,
+Telefono		char(14),
 e_mail			char(60))
 RETURNING integer as codigo, char(100) as descripcion;
 
@@ -16,7 +16,7 @@ DEFINE miNroOrden   int;
 DEFINE miNombre		char(50);
 DEFINE miTipoDoc		char(5);
 DEFINE miNroDoc		float;
-DEFINE miTelefono		char(15);
+DEFINE miTelefono		char(14);
 DEFINE miEmail			char(60);
 
 DEFINE msgError CHAR(50); 
@@ -35,6 +35,7 @@ DEFINE	actu_nro_doc LIKE cliente.nro_doc;
 DEFINE	actu_telefono LIKE cliente.telefono;
 DEFINE	actu_rut LIKE cliente.rut;
 DEFINE  miCuit varchar(11,0);
+DEFINE  iLenStr   int;
 
 	-- registro lockeado
     ON EXCEPTION IN (-107, -144, -113)
@@ -94,7 +95,12 @@ DEFINE  miCuit varchar(11,0);
 	IF TRIM(Telefono)= '' THEN
 		LET miTelefono = NULL;
 	ELSE
-		LET miTelefono = Telefono;
+        LET iLenStr=LENGTH(TRIM(Telefono));
+        IF iLenStr > 8 THEN
+            LET miTelefono = SUBSTR(TRIM(Telefono), -8);
+        ELSE
+            LET miTelefono = TRIM(Telefono);
+        END IF;
 	END IF;
 
 	IF TRIM(e_mail)= '' THEN
