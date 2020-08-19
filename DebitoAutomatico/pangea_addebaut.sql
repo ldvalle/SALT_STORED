@@ -113,7 +113,7 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
              AND o.tipo              = 'D' );
 
     IF ivalCodigo IS NULL THEN
-        RETURN 1, 'Codigo Banco / Tarjeta incorrecto';
+        RETURN 1, 'Codigo Banco/Tarjeta incorrecto o Entidad no autoriza adhesión directa.';
     END IF
 
     IF TipoCuenta = '01' THEN 
