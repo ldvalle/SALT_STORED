@@ -144,22 +144,21 @@ DEFINE  iLenStr   int;
 	AND ( t1.fecha_desactivac >= TODAY OR t1.fecha_desactivac IS NULL );
 
 	-- Validaciones x estado
-	IF TRIM(esElectro)='S' AND miNombre IS NOT NULL THEN
-		RETURN 1, 'Cliente ElectroDependiente - No se puede cambiar nombre';
-	END IF;
 	
-	IF miNombre IS NOT NULL THEN
-        IF (TRIM(miNombre) != TRIM(actu_nombre)) OR actu_nombre IS NULL THEN
-            --Actualizar nombre 4
-            EXECUTE PROCEDURE salt_actu_nombre(miNroCliente, miNroOrden, actu_nombre, miNombre, 4)
-                INTO codSts, descSts;
-            
-            IF codSts != 0 THEN
-                RETURN codSts, descSts;
+	IF TRIM(esElectro)!= 'S' THEN
+        IF miNombre IS NOT NULL THEN
+            IF (TRIM(miNombre) != TRIM(actu_nombre)) OR actu_nombre IS NULL THEN
+                --Actualizar nombre 4
+                EXECUTE PROCEDURE salt_actu_nombre(miNroCliente, miNroOrden, actu_nombre, miNombre, 4)
+                    INTO codSts, descSts;
+                
+                IF codSts != 0 THEN
+                    RETURN codSts, descSts;
+                END IF;
             END IF;
-		END IF;
-	END IF;
-	
+        END IF;
+    END IF;
+    
 	IF TRIM(miTipoDoc)='CUIT' OR TRIM(miTipoDoc)='CUIL' THEN
         IF miNroDoc IS NOT NULL THEN
             --Actualizar CUIT
