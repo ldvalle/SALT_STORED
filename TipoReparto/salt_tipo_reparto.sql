@@ -24,8 +24,9 @@ RETURNING SMALLINT AS codigo, CHAR(100) AS descripcion;
 	DEFINE stsCodigo			smallint;
 	DEFINE stsDescri			char(100);
 	
+	-- Tipo Reparto Digital lo reboto con OK
 	IF TRIM(sol_tipo_reparto)= '01' THEN
-		RETURN 1, 'Tipo Digital solo se realiza mediante proceso batch.';
+		RETURN 0, 'OK';
 	END IF;
     
 	IF TRIM(sol_tipo_reparto)!= '02' AND TRIM(sol_tipo_reparto)!= '04' AND TRIM(sol_tipo_reparto)!= '05' THEN
@@ -136,7 +137,25 @@ RETURNING SMALLINT AS codigo, CHAR(100) AS descripcion;
 
 		IF stsCodigo != 0 THEN
 			RETURN stsCodigo, stsDescri;
-		END IF;		
+		END IF;	
+		
+    -- de postal a postal
+	ELIF TRIM(sts_tipo_reparto)= 'POSTAL' AND TRIM(sol_tipo_reparto)= '04' THEN
+		-- actualizar postal
+		EXECUTE PROCEDURE salt_update_postal(nro_cliente, pos_calle, pos_numeroCalle, 
+			pos_piso, pos_depto, codigoPostal, pos_localidad, 
+			pos_partido, miProvincia, pos_entreCalle1, pos_entreCalle2) INTO stsCodigo, stsDescri;
+			
+		IF stsCodigo != 0 THEN
+			RETURN stsCodigo, stsDescri;
+		END IF;
+
+		-- registra modif
+		EXECUTE PROCEDURE pangea_ins_modif(nro_cliente, 'MOD', 0, 'SALESFORCE', 'A', '98', 'POSTAL', 'POSTAL', 'SALT-T1', 'FUSE') INTO stsCodigo, stsDescri;
+
+		IF stsCodigo != 0 THEN
+			RETURN stsCodigo, stsDescri;
+		END IF;
 		
 	-- de braile a normal
 	ELIF TRIM(sts_tipo_reparto)= 'BRAILE' AND TRIM(sol_tipo_reparto)= '05' THEN
@@ -184,7 +203,7 @@ END PROCEDURE;
 
 GRANT EXECUTE ON salt_tipo_reparto TO
 superpjp, supersre, supersbl,
-guardt1,
+guardt1, fuse,
 ctousu, batchsyn, procbatc, "UCENTRO", "OVIRTUAL",
 pjp, sreyes, sbl, ssalve, gtricoci,
 pablop, aarrien, vdiaz, ldvalle, vaz;
