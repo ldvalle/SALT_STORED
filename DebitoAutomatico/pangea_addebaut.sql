@@ -93,11 +93,37 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
 		IF nrows = 0 THEN
 			RETURN 1, 'Codigo de Tarjeta no Mapeada en MAC.';
 		END IF;
+
+        LET ivalCodigo =
+            ( SELECT e.dig_nro_cuenta
+                FROM entidades_debito e, oficinas o
+            WHERE e.oficina           = o.oficina
+                AND e.oficina           = codOficina
+                AND e.tipo              = 'T'
+                AND e.autoriza_adhesion = 'S'
+                AND e.confirma_adhesion = 'N'
+                AND e.fecha_activacion <= TODAY
+                AND (e.fecha_desactivac > TODAY OR e.fecha_desactivac IS NULL)
+                AND o.sucursal          = '0000'
+                AND o.vigente           = 'S'
+                AND o.tipo              = 'D' );
+		
 	ELSE
 		-- Es cuenta Bancaria
-		LET codOficina = TRIM(CodBanco);
+		SELECT e.dig_nro_cuenta, e.oficina INTO ivalCodigo, codOficina
+            FROM entidades_debito e, oficinas o
+           WHERE e.oficina           = o.oficina
+             AND e.cod_ofi_bcra      = CodBanco
+             AND e.tipo              = 'B'
+             AND e.autoriza_adhesion = 'S'
+             AND e.confirma_adhesion = 'N'
+             AND e.fecha_activacion <= TODAY
+             AND (e.fecha_desactivac > TODAY OR e.fecha_desactivac IS NULL)
+             AND o.sucursal          = '0000'
+             AND o.vigente           = 'S'
+             AND o.tipo              = 'D';
 	END IF;
-
+{
     LET ivalCodigo =
         ( SELECT e.dig_nro_cuenta
             FROM entidades_debito e, oficinas o
@@ -111,6 +137,7 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
              AND o.sucursal          = '0000'
              AND o.vigente           = 'S'
              AND o.tipo              = 'D' );
+}
 
     IF ivalCodigo IS NULL THEN
         RETURN 1, 'Codigo Banco/Tarjeta incorrecto o Entidad no autoriza adhesión directa.';
@@ -129,13 +156,15 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
             RETURN 1, 'El Cliente ya tiene un alta el dia de hoy.';
         END IF;
     
-        EXECUTE PROCEDURE pangea_alta_debito(NroCliente, TipoCuenta, CodBanco, CBU, codOficina, NroTarjeta, sDVCliente, sCorteRest) INTO iValProced, sErrProced;
+        --EXECUTE PROCEDURE pangea_alta_debito(NroCliente, TipoCuenta, CodBanco, CBU, codOficina, NroTarjeta, sDVCliente, sCorteRest) INTO iValProced, sErrProced;
+        EXECUTE PROCEDURE pangea_alta_debito(NroCliente, TipoCuenta, codOficina, CBU, codOficina, NroTarjeta, sDVCliente, sCorteRest) INTO iValProced, sErrProced;
     
         IF iValProced = 1 THEN
             RETURN 1, sErrProced;
         END IF
     ELSE
-        EXECUTE PROCEDURE pangea_baja_debito(NroCliente, TipoCuenta, CodBanco, CBU, codOficina, NroTarjeta) INTO iValProced, sErrProced;
+        --EXECUTE PROCEDURE pangea_baja_debito(NroCliente, TipoCuenta, CodBanco, CBU, codOficina, NroTarjeta) INTO iValProced, sErrProced;
+        EXECUTE PROCEDURE pangea_baja_debito(NroCliente, TipoCuenta, codOficina, CBU, codOficina, NroTarjeta) INTO iValProced, sErrProced;
     
         IF iValProced = 1 THEN
             RETURN 1, sErrProced;
@@ -148,7 +177,7 @@ END PROCEDURE;
 --EXECUTE pangea_addebaut
 GRANT EXECUTE ON pangea_addebaut TO
 superpjp, supersre, supersbl,
-guardt1,
+guardt1, fuse,
 ctousu, batchsyn, procbatc, "UCENTRO", "OVIRTUAL",
 pjp, sreyes, sbl, ssalve, gtricoci,
 pablop, aarrien, vdiaz, ldvalle, vaz;
