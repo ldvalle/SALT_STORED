@@ -37,9 +37,10 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
     DEFINE ivalCodigo           INTEGER;
     DEFINE iValProced           INTEGER;
     DEFINE sErrProced           CHAR(100);
-    DEFINE codOficina			  char(4);
-    DEFINE nrows					  int;
+    DEFINE codOficina			char(4);
+    DEFINE nrows				int;
     DEFINE iCantReg             int;
+    DEFINE mi_codigo_banco      char(4);
     
     {
     ON EXCEPTION SET sql_err, isam_err, error_info
@@ -61,14 +62,18 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
     END IF
     
     IF (TipoCuenta = '01' AND (ClaseTarjeta IS NULL OR NroTarjeta IS NULL)) OR
-       (TipoCuenta = '02' AND (CodBanco IS NULL     OR CBU IS NULL) )THEN
+       (TipoCuenta = '02' AND (CodBanco IS NULL OR CBU IS NULL) )THEN
         RETURN 1, 'Paremetros incorrectos';
     END IF
 
     IF TipoCuenta = '02' AND LENGTH(CBU) <> 22 THEN 
         RETURN 1, 'Cant.Dígitos de CBU incorrecto';
     END IF
+    IF TipoCuenta = '02' AND LENGTH(CodBanco) <> 4 THEN 
+        RETURN 1, 'Cant.Dígitos Cod Banco incorrecto';
+    END IF
 
+    
 
     LET sEstadoCliente, sEstadoFacturacion, sDVCliente, sCorteRest =
         ( SELECT estado_cliente, estado_facturacion, dv_numero_cliente, tiene_corte_rest
@@ -110,10 +115,12 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
 		
 	ELSE
 		-- Es cuenta Bancaria
+		LET mi_codigo_banco = CodBanco[2,4];
+		
 		SELECT e.dig_nro_cuenta, e.oficina INTO ivalCodigo, codOficina
             FROM entidades_debito e, oficinas o
            WHERE e.oficina           = o.oficina
-             AND e.cod_ofi_bcra      = CodBanco
+             AND e.cod_ofi_bcra      = TRIM(mi_codigo_banco)
              AND e.tipo              = 'B'
              AND e.autoriza_adhesion = 'S'
              AND e.confirma_adhesion = 'N'
