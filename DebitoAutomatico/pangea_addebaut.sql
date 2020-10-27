@@ -162,7 +162,22 @@ CREATE PROCEDURE pangea_addebaut(NroCliente INTEGER, Solicitud CHAR(1), TipoCuen
         IF iCantReg > 0 then
             RETURN 1, 'El Cliente ya tiene un alta el dia de hoy.';
         END IF;
-    
+        -- Se agrega para dar de baja la existente y de alta la nueva
+        IF ( SELECT COUNT(*)
+                FROM forma_pago
+            WHERE numero_cliente = NroCliente
+                AND fecha_activacion <= TODAY
+                AND (fecha_desactivac > TODAY OR fecha_desactivac IS NULL) ) > 0 THEN
+            
+            --EXECUTE PROCEDURE pangea_baja_debito(NroCliente, TipoCuenta, CodBanco, CBU, codOficina, NroTarjeta) INTO iValProced, sErrProced;
+            EXECUTE PROCEDURE pangea_baja_debito(NroCliente, TipoCuenta, codOficina, CBU, codOficina, NroTarjeta) INTO iValProced, sErrProced;
+        
+            IF iValProced = 1 THEN
+                RETURN 1, sErrProced;
+            END IF
+        END IF        
+        
+        
         --EXECUTE PROCEDURE pangea_alta_debito(NroCliente, TipoCuenta, CodBanco, CBU, codOficina, NroTarjeta, sDVCliente, sCorteRest) INTO iValProced, sErrProced;
         EXECUTE PROCEDURE pangea_alta_debito(NroCliente, TipoCuenta, codOficina, CBU, codOficina, NroTarjeta, sDVCliente, sCorteRest) INTO iValProced, sErrProced;
     

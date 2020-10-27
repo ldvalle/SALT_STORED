@@ -81,7 +81,8 @@ CREATE PROCEDURE pangea_baja_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
 	IF nrows = 0 THEN
 		RETURN 1, 'El Cliente NO posee forma de pago DEBITO activa.';
 	END IF;
-
+	
+{   --- Se quito para que puedan cambiar de debito a debito
 	IF TRIM(TipoCuenta)=='01' THEN
 		IF stsCBU IS NOT NULL THEN
 			RETURN 1, 'Tipo de Entidad Informada NO Coincide.';
@@ -103,6 +104,7 @@ CREATE PROCEDURE pangea_baja_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
 			RETURN 1, 'CBU NO Coincide.';
 		END IF;	
 	END IF;
+}
 
 	SELECT r.area, s.sucursal INTO g_area, g_sucur FROM rol r, sucar s
 	WHERE r.rol = 'SALESFORCE'
@@ -241,7 +243,7 @@ END PROCEDURE;
 --EXECUTE pangea_baja_debito
 GRANT EXECUTE ON pangea_baja_debito TO
 superpjp, supersre, supersbl,
-guardt1,
+guardt1, fuse,
 ctousu, batchsyn, procbatc, "UCENTRO", "OVIRTUAL",
 pjp, sreyes, sbl, ssalve, gtricoci,
 pablop, aarrien, vdiaz, ldvalle, vaz;

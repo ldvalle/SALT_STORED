@@ -63,12 +63,13 @@ CREATE PROCEDURE pangea_alta_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
     }
     
     LET v_en_transaccion = 0;
-
+{   -- se quitó para que puedan cambiar de debito a debito
     IF ( SELECT COUNT(*)
             FROM forma_pago
            WHERE numero_cliente    = NroCliente
              AND fecha_activacion <= TODAY
              AND (fecha_desactivac > TODAY OR fecha_desactivac IS NULL) ) > 0 THEN
+        
         RETURN 1, "Cliente adherido a Debito Automatico";
     END IF
 
@@ -79,7 +80,7 @@ CREATE PROCEDURE pangea_alta_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
         RETURN 1, "Cliente con Solicitud Previa";
     END IF
 
-
+}
     IF TipoCuenta = '02' THEN
     	EXECUTE PROCEDURE ivr_val_cbu(CBU, CodBanco) INTO iValCBU, iErrCBU;
 
@@ -222,7 +223,7 @@ END PROCEDURE;
 --EXECUTE pangea_alta_debito
 GRANT EXECUTE ON pangea_alta_debito TO
 superpjp, supersre, supersbl,
-guardt1,
+guardt1, fuse,
 ctousu, batchsyn, procbatc, "UCENTRO", "OVIRTUAL",
 pjp, sreyes, sbl, ssalve, gtricoci,
 pablop, aarrien, vdiaz, ldvalle, vaz;
