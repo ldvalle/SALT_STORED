@@ -53,9 +53,10 @@ CREATE PROCEDURE pangea_alta_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
         IF v_en_transaccion = 1 THEN
             ROLLBACK WORK;
         END IF
-        RETURN 2, "Se produjo un error: " || error_info;
+        RETURN 2, "Cliente en proceso. Intente mas tarde.: " || error_info;
         --RAISE EXCEPTION sql_err, isam_err, error_info;
     END EXCEPTION;
+    
     {
     ON EXCEPTION IN (-746) SET sql_err, isam_err, error_info
         RAISE EXCEPTION sql_err, isam_err, error_info;
@@ -137,6 +138,55 @@ CREATE PROCEDURE pangea_alta_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
     --BEGIN WORK;
     LET v_en_transaccion = 1;
 
+    -- Esto es para permitir cambio de debito en un solo paso
+    UPDATE forma_pago set
+    fecha_desactivac = TODAY
+    WHERE numero_cliente = NroCliente
+    AND fecha_activacion <= TODAY
+    AND (fecha_desactivac > TODAY OR fecha_desactivac IS NULL);
+
+    INSERT INTO solic_adhpag_el (
+                    numero_cliente,
+                    dv_cliente,
+                    codigo_movimiento,
+                    fp_banco,
+                    fp_tipocuenta,
+                    fp_nrocuenta,
+                    fp_sucursal,
+                    fecha_solicitud,
+                    rol_creacion,
+                    sucursal_ede,
+                    codigo_extraccion,
+                    fecha_extraccion,
+                    fp_cbu,
+                    fecha_eliminacion,
+                    rol_eliminacion)
+            SELECT numero_cliente,
+                   dv_cliente,
+                   codigo_movimiento,
+                   fp_banco,
+                   fp_tipocuenta,
+                   fp_nrocuenta,
+                   fp_sucursal,
+                   fecha_solicitud,
+                   rol_creacion,
+                   sucursal_ede,
+                   codigo_extraccion,
+                   fecha_extraccion,
+                   fp_cbu,
+                   TODAY,
+                   'SALESFORCE'
+              FROM solicitud_adhpag
+             WHERE numero_cliente    = NroCliente
+               AND codigo_movimiento = '42';
+
+
+    DELETE FROM solicitud_adhpag
+     WHERE numero_cliente    = NroCliente
+       AND codigo_movimiento = '42';    
+    
+    -- fin baja forzada
+    
     INSERT INTO solicitud_adhpag (
                     numero_cliente,
                     dv_cliente,

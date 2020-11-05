@@ -58,7 +58,7 @@ CREATE PROCEDURE pangea_baja_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
         IF v_en_transaccion = 1 THEN
             ROLLBACK WORK;
         END IF
-        RETURN 2, "Se produjo un error: " || error_info;
+        RETURN 2, "Cliente en proceso. Intente mas tarde: " || error_info;
         --RAISE EXCEPTION sql_err, isam_err, error_info;
     END EXCEPTION;
     {
@@ -79,7 +79,7 @@ CREATE PROCEDURE pangea_baja_debito(NroCliente INTEGER, TipoCuenta CHAR(2), CodB
 
 	LET nrows = DBINFO('sqlca.sqlerrd2');
 	IF nrows = 0 THEN
-		RETURN 1, 'El Cliente NO posee forma de pago DEBITO activa.';
+		RETURN 0, 'El Cliente NO posee forma de pago DEBITO activa.';
 	END IF;
 	
 {   --- Se quito para que puedan cambiar de debito a debito
