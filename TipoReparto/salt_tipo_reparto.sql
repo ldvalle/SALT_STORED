@@ -122,6 +122,31 @@ RETURNING SMALLINT AS codigo, CHAR(100) AS descripcion;
 			RETURN stsCodigo, stsDescri;
 		END IF;		
 		
+        -- Quitar marca de Digital Sin Papel
+        LET nrows=0;
+        
+        SELECT COUNT(*) INTO nrows FROM clientes_digital 
+        WHERE numero_cliente = nro_cliente
+        AND fecha_alta <= CURRENT
+        AND (fecha_baja IS NULL OR fecha_baja > CURRENT)
+        AND sin_papel = 'S';
+        
+        IF nrows > 0 THEN
+          UPDATE clientes_digital SET
+          sin_papel = 'N',
+          rol_modif = 'SALESFORCE',
+          fecha_modif = CURRENT
+          WHERE numero_cliente = nro_cliente
+          AND fecha_alta <= CURRENT
+          AND (fecha_baja IS NULL OR fecha_baja > CURRENT)
+          AND sin_papel = 'S';
+        
+          -- registra modif
+          EXECUTE PROCEDURE pangea_ins_modif(nro_cliente, 'MOD', 0, 'SALESFORCE', 'A', '269', 'S', 'N', 'SALT-T1', 'FUSE') INTO stsCodigo, stsDescri;
+        
+        END IF;
+        
+
 	-- de postal a braile
 	ELIF TRIM(sts_tipo_reparto)= 'POSTAL' AND TRIM(sol_tipo_reparto)= '02' THEN
 		-- baja postal
@@ -170,6 +195,30 @@ RETURNING SMALLINT AS codigo, CHAR(100) AS descripcion;
 		IF stsCodigo != 0 THEN
 			RETURN stsCodigo, stsDescri;
 		END IF;
+
+        -- Quitar marca de Digital Sin Papel
+        LET nrows=0;
+        
+        SELECT COUNT(*) INTO nrows FROM clientes_digital 
+        WHERE numero_cliente = nro_cliente
+        AND fecha_alta <= CURRENT
+        AND (fecha_baja IS NULL OR fecha_baja > CURRENT)
+        AND sin_papel = 'S';
+        
+        IF nrows > 0 THEN
+          UPDATE clientes_digital SET
+          sin_papel = 'N',
+          rol_modif = 'SALESFORCE',
+          fecha_modif = CURRENT
+          WHERE numero_cliente = nro_cliente
+          AND fecha_alta <= CURRENT
+          AND (fecha_baja IS NULL OR fecha_baja > CURRENT)
+          AND sin_papel = 'S';
+        
+          -- registra modif
+          EXECUTE PROCEDURE pangea_ins_modif(nro_cliente, 'MOD', 0, 'SALESFORCE', 'A', '269', 'S', 'N', 'SALT-T1', 'FUSE') INTO stsCodigo, stsDescri;
+        
+        END IF;
 		
 	-- de braile a postal
 	ELIF TRIM(sts_tipo_reparto)= 'BRAILE' AND TRIM(sol_tipo_reparto)= '04' THEN
@@ -193,6 +242,33 @@ RETURNING SMALLINT AS codigo, CHAR(100) AS descripcion;
 		IF stsCodigo != 0 THEN
 			RETURN stsCodigo, stsDescri;
 		END IF;
+        
+    -- de Normal a Normal        
+    ELIF TRIM(sts_tipo_reparto)= 'NORMAL' AND TRIM(sol_tipo_reparto)= '05' THEN 
+        -- Quitar marca de Digital Sin Papel
+        LET nrows=0;
+        
+        SELECT COUNT(*) INTO nrows FROM clientes_digital 
+        WHERE numero_cliente = nro_cliente
+        AND fecha_alta <= CURRENT
+        AND (fecha_baja IS NULL OR fecha_baja > CURRENT)
+        AND sin_papel = 'S';
+        
+        IF nrows > 0 THEN
+          UPDATE clientes_digital SET
+          sin_papel = 'N',
+          rol_modif = 'SALESFORCE',
+          fecha_modif = CURRENT
+          WHERE numero_cliente = nro_cliente
+          AND fecha_alta <= CURRENT
+          AND (fecha_baja IS NULL OR fecha_baja > CURRENT)
+          AND sin_papel = 'S';
+        
+          -- registra modif
+          EXECUTE PROCEDURE pangea_ins_modif(nro_cliente, 'MOD', 0, 'SALESFORCE', 'A', '269', 'S', 'N', 'SALT-T1', 'FUSE') INTO stsCodigo, stsDescri;
+        
+        END IF;
+    
 	ELSE
 		RETURN 1, "Operacion desconocida [" || TRIM(sts_tipo_reparto) || "] [" || TRIM(sol_tipo_reparto) || "]";
 	END IF;
