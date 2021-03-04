@@ -69,14 +69,14 @@ CREATE PROCEDURE salt_bloqueo_prorroga(NroCliente INTEGER, Origen CHAR(2), Motiv
 	 END IF;
 	 
 	 IF TRIM(Motivo) = 'C' THEN
-		IF iCantDias > 100 THEN
+		IF iCantDias > 10 THEN
 			LET iCantDias = 10;
 		END IF
 		LET miMotivo = '11';
 	 END IF;
 
 	 IF TRIM(Motivo) = 'F' THEN
-		IF iCantDias > 100 THEN
+		IF iCantDias > 30 THEN
 			LET iCantDias = 30;
 		END IF
 		LET miMotivo = '01';
@@ -105,11 +105,10 @@ CREATE PROCEDURE salt_bloqueo_prorroga(NroCliente INTEGER, Origen CHAR(2), Motiv
     END IF
 
 
-    IF ( SELECT COUNT(*)
-           FROM corplazo
-          WHERE numero_cliente = NroCliente
-            AND DATE(fecha_solicitud) BETWEEN dFechaIni AND dFechaFin ) > 0 THEN
-        RETURN 1, "Cliente con Solicitud Previa de anulacion";
+    IF ( SELECT COUNT(*) FROM corplazo
+			WHERE numero_cliente = NroCliente
+			AND fecha_anterior >= today ) > 0 THEN
+        RETURN 1, "Cliente con Solicitud Activa de anulacion";
     END IF
 
 
@@ -144,10 +143,16 @@ CREATE PROCEDURE salt_bloqueo_prorroga(NroCliente INTEGER, Origen CHAR(2), Motiv
 
     SELECT fecha_a_corte + iCantDias INTO nva_fecha FROM cliente WHERE numero_cliente = NroCliente;
     
+{    
     UPDATE cliente
-       SET fecha_a_corte      = nva_fecha,
-           tiene_cambios_rest = 'N'
-     WHERE numero_cliente     = NroCliente;
+       SET fecha_a_corte    = nva_fecha,
+           tiene_corte_rest = 'S'
+     WHERE numero_cliente   = NroCliente;
+}
+
+    UPDATE cliente SET 
+        fecha_a_corte    = nva_fecha
+    WHERE numero_cliente   = NroCliente;
 
     INSERT INTO corplazo (
                     oficina,            
@@ -158,7 +163,8 @@ CREATE PROCEDURE salt_bloqueo_prorroga(NroCliente INTEGER, Origen CHAR(2), Motiv
                     sucursal,           
                     tipo,               
                     fecha_anterior,     
-                    tarifa
+                    tarifa,
+                    fecha_solicitud
             ) VALUES (
                     '0000',
                     'SALESFORCE',
@@ -167,8 +173,9 @@ CREATE PROCEDURE salt_bloqueo_prorroga(NroCliente INTEGER, Origen CHAR(2), Motiv
                     NroCliente,
                     sSucursal,
                     'D',
-                    (SELECT fecha_a_corte FROM cliente where numero_cliente = NroCliente),
-                    sTarifa
+                    nva_fecha,
+                    sTarifa,
+                    CURRENT
                     );
 
     --COMMIT WORK;
@@ -179,7 +186,7 @@ END PROCEDURE;
 
 GRANT EXECUTE ON salt_bloqueo_prorroga TO
 superpjp, supersre, supersbl,
-guardt1,
+guardt1, fuse,
 ctousu, batchsyn, procbatc, "UCENTRO", "OVIRTUAL",
 pjp, sreyes, sbl, ssalve, gtricoci,
 pablop, aarrien, vdiaz, ldvalle, vaz;
