@@ -42,8 +42,11 @@ DEFINE CLIENTE_fecha_ultima_lect date;
 DEFINE nrows                integer;
 DEFINE sql_err              INTEGER;
 DEFINE isam_err             INTEGER;
-DEFINE error_info           CHAR(100);
+DEFINE error_info           char(100);
 
+DEFINE retCodigo            smallint;             
+DEFINE retDescripcion       char(100);
+DEFINE auxMedInterno        char(1);
 
     ON EXCEPTION SET sql_err, isam_err, error_info
         RETURN 1, 'sfcMoverMedidor. sqlErr '  || to_char(sql_err) || ' isamErr ' || to_char(isam_err) || ' ' || error_info;
@@ -75,7 +78,7 @@ DEFINE error_info           CHAR(100);
       MEDID_tipo_medidor
     FROM medid 
     WHERE numero_cliente = nroClienteVjo
-    AND estado = 'I'
+    AND estado = 'I';
 
 	LET nrows = DBINFO('sqlca.sqlerrd2');
 	IF nrows = 0 THEN
@@ -135,10 +138,10 @@ DEFINE error_info           CHAR(100);
         (tipo1, valor1, fecha1, 
           numero_medidor, marca_medidor, modelo_medidor
         )VALUES( '1', nroClienteNvo, TODAY,
-          MEDID_nro_medidor, MEDID_marca_medidor, MEDID_modelo_medidor);
+          MEDID_numero_medidor, MEDID_marca_medidor, MEDID_modelo_medidor);
     ELSE
         UPDATE ultmed SET 
-        tipo1 = '1', "
+        tipo1 = '1', 
         tipo2 = ULTMED_tipo4,
         tipo3 = ULTMED_tipo5,
         tipo4 = ULTMED_tipo5,
@@ -156,12 +159,10 @@ DEFINE error_info           CHAR(100);
         fecha4 = ULTMED_fecha6,
         fecha5 = ULTMED_anio_fabrica,
         fecha6 = ULTMED_marca_censo
-        WHERE numero_medidor = MEDID_nro_medidor
+        WHERE numero_medidor = MEDID_numero_medidor
         AND marca_medidor = MEDID_marca_medidor
         AND modelo_medidor = MEDID_modelo_medidor;
 	END IF;
-                                                      
-    RETURN retCodigo, retDescripcion;
 
     -- Crear la hislec tipo 7 para cliente nuevo
     INSERT INTO hislec (
@@ -202,7 +203,7 @@ DEFINE error_info           CHAR(100);
           tipo_lectura, 
           fecha_lectura, 
           coseno_phi
-        )VALUES()
+        )VALUES(
           nroClienteNvo,
           0,
           MEDID_numero_medidor,
@@ -231,10 +232,62 @@ DEFINE error_info           CHAR(100);
     );
      
     -- Hacemos los precintos
+    EXECUTE PROCEDURE sfc_mover_precintos(nroClienteVjo, nroClienteNvo, MEDID_numero_medidor, MEDID_marca_medidor, MEDID_modelo_medidor)
+        INTO retCodigo, retDescripcion;
+        
+    IF retCodigo != 0 THEN
+        RETURN retCodigo, retDescripcion;
+    END IF;        
     
-    -- Teminamos de transferir el medidor
     
+    --  Ahora si Teminamos de transferir el medidor
+    UPDATE medid SET
+        numero_cliente = nroClienteNvo,
+        fecha_ult_insta = TODAY 
+    WHERE numero_cliente = nroClienteVjo
+    AND numero_medidor = MEDID_numero_medidor
+    AND marca_medidor = MEDID_marca_medidor
+    AND modelo_medidor = MEDID_modelo_medidor
+    AND estado = 'I';
+
+    SELECT COUNT(*) INTO nrows
+    FROM cliente_info_adic c 
+    WHERE c.numero_cliente = nroClienteVjo;
     
+    IF nrows > 0 THEN
+      INSERT INTO cliente_info_adic (
+        numero_cliente, 
+        advertencia_lector, 
+        med_interno, 
+        fecha_alta) 
+      SELECT nroClienteNvo,
+        c.advertencia_lector,
+        c.med_interno, 
+        TODAY 
+      FROM cliente_info_adic c 
+      WHERE c.numero_cliente = nroClienteVjo;
+
+      SELECT c.med_interno INTO auxMedInterno 
+      FROM cliente_info_adic c 
+      WHERE c.numero_cliente = nroClienteVjo;
+
+      EXECUTE PROCEDURE salt_graba_modif(nroClienteNvo, '511', 'SALESFORCE', 'INCORPORACION', auxMedInterno, '')
+        INTO retCodigo, retDescripcion;
+        
+      IF retCodigo != 0 THEN
+          RETURN retCodigo, retDescripcion;
+      END IF;        
+        
+    END IF;
+
+    -- Hacemos SAM Medidores
+    EXECUTE PROCEDURE sfc_sam_medidores(nroClienteVjo, nroClienteNvo, nroSolicitud) INTO retCodigo, retDescripcion;
+
+    IF retCodigo != 0 THEN
+        RETURN retCodigo, retDescripcion;
+    END IF;        
+    
+    RETURN retCodigo, retDescripcion;
 END PROCEDURE;
 
 

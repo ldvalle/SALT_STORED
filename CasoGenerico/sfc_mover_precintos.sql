@@ -96,7 +96,8 @@ DEFINE auxDescRet           char(100);
         END IF;
         
     END IF;
-    
+ 
+    RETURN 0, 'OK';   
 END PROCEDURE;
 
 
