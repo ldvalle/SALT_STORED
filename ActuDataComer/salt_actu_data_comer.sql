@@ -1,3 +1,5 @@
+drop procedure salt_actu_data_comer; 
+
 CREATE PROCEDURE salt_actu_data_comer(
 numeroCliente	LIKE cliente.numero_cliente,
 nroOrden			int,
@@ -39,13 +41,13 @@ DEFINE  iLenStr   int;
 
 	-- registro lockeado
     ON EXCEPTION IN (-107, -144, -113)
-    	ROLLBACK WORK;
+    	-- ROLLBACK WORK;
     	return 1, 'ERR - Tabla mi_cliente lockeada';
     END EXCEPTION;
 
 	-- clave duplicada
     ON EXCEPTION IN (-236, -100)
-    	ROLLBACK WORK;
+    	-- ROLLBACK WORK;
     	return 2, 'ERR - Tabla mi_cliente Clave Duplicada';
     END EXCEPTION;
 
@@ -240,11 +242,11 @@ DEFINE  iLenStr   int;
 
 END PROCEDURE;
 
-
 GRANT EXECUTE ON salt_actu_data_comer TO
 superpjp, supersre, supersbl, supersc, corbacho,
-guardt1,
+guardt1, fuse,
 ctousu, batchsyn, procbatc, "UCENTRO", "OVIRTUAL",
 pjp, sreyes, sbl, ssalve, gtricoci,
 pablop, aarrien, vdiaz, ldvalle, vaz;
+
 
